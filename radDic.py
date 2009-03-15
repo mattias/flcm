@@ -13,11 +13,12 @@ except ImportError:
 
 def kanxiRadDic(radicalList):
   newDic = open('classicalRad', 'w')
+  kanjidicRadList = kanjidic2rads()
   listNewDic = []
   i = 0
 
   while i < 214:
-    kanjiList = kanjidic2kanxi(str(i+1), radicalList)
+    kanjiList = kanjidic2kanxi(str(i+1), radicalList, kanjidicRadList)
     for kanji in kanjiList:
       for character in kanjiList:
         for kanxi in character.iter('rad_value'):
@@ -26,34 +27,38 @@ def kanxiRadDic(radicalList):
               for char in character:
                 for literal in char.iter('literal'):
                     newDic.write(literal.text.encode('utf_8')+'\n')
-                    print str(i+1)+' '+literal.text+' : Done'
+                    print literal.text+' : Done!'
                     i=i+1
 
   newDic.close()
   return
-
-def kanjidic2kanxi(kanxiNum, radicalList):
-  kanxiRe = re.compile(u'^%s$' % kanxiNum, re.UNICODE)
-  kanxiHit = []
+def kanjidic2rads():
   kanjidic2 = etree.parse('dictionaries/kanjidic2.xml')
   root = kanjidic2.getroot()
-
+  
+  radList = []
   for character in root:
     for literal in character.iter('literal'):
       i = 0
       while i < 214:
-        print literal.text.strip()+' == '+radicalList[i][2].strip()
         if(literal.text.strip() == radicalList[i][2].strip()):
-          for kanxi in character.iter('rad_value'):
-            if(kanxi.get('rad_type') == 'classical'):
-              print 'Found the radical!'
-              if(re.search(kanxiRe, kanxi.text)):
-                kanxiHit.append(character)
-                return kanxiHit
-              else:
-                i = i+1
+          print str(i+1)+' : Found radical '+literal.text.strip()+', appending it to list!'
+          radList.append(character)
         else:
           i = i+1
+        i = i+1
+  print len(radList)
+  return radList
+def kanjidic2kanxi(kanxiNum, radicalList, kanjidicRadList):
+  kanxiRe = re.compile(u'^%s$' % kanxiNum, re.UNICODE)
+  kanxiHit = []
+  for character in kanjidicRadList:
+    for kanxi in character.iter('rad_value'):
+      if(kanxi.get('rad_type') == 'classical'):
+        if(re.search(kanxiRe, kanxi.text)):
+          kanxiHit.append(character)
+          print kanxiNum + ' / 214'
+          return kanxiHit
   
   return kanxiHit
 

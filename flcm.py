@@ -11,24 +11,67 @@ try:
 except ImportError:
   raise SystemExit("You need lxml to run this app!")
 
-
 sodPath = 'dictionaries/sod-utf8/'
 fontSerif = '/usr/share/fonts/truetype/kochi/kochi-mincho.ttf'
 fontSanSerif = '/usr/share/fonts/truetype/kochi/kochi-gothic.ttf'
 fontSmall = '/usr/share/fonts/truetype/freefont/FreeSans.ttf'
 
 def makeCards(inKanji):
+
+  #start pull words from jmdic and get 6 example compounds
+  kanji = re.compile(u'%s' % inKanji, re.UNICODE)
+  jmdicInfo = jmdic(inKanji)
+  commonWords = []
+  commonWordsTrans = []
+  commonWordsChoice = []
+  duplicate = 0
+
+  for entry in jmdicInfo:
+    for elem in entry.iter('ke_pri'):
+      if((elem.text == 'ichi1' or elem.text == 'news1' or elem.text == 'spec1' or elem.text == 'gai1')):
+        for tag in entry.iter('keb'):
+          if(re.search(kanji, tag.text)):
+            for words in commonWords:
+              duplicate = 0
+              if(words == tag.text):
+                duplicate = 1
+            if(duplicate != 1):
+              commonWords.append(tag.text)
+              temp = []
+              for gloss in entry.iter('gloss'):
+                temp.append(gloss.text)
+              commonWordsTrans.append(temp)
+  i = 0
+  if(len(commonWords) > 6):
+    words = 6
+    while i < words:
+      rand = random.randint(0, len(commonWords)-1)
+      for rands in commonWordsChoice:
+        duplicate = 0
+        if(rands == rand):
+          duplicate = 1
+      
+      while duplicate == 1:
+        rand = random.randint(0, len(commonWords)-1)
+      commonWordsChoice.append(rand)
+      i=i+1
+  else:
+    words = len(commonWords)
+    while i < words:
+      commonWordsChoice.append(i)
+      i=i+1
+
   f = 0
-  makeFront(inKanji)
+  makeFront(inKanji, commonWordsChoice, commonWords)
   print str(f+1)+' : Front Done'
   b = 0
-  makeBack(inKanji)
+  makeBack(inKanji, commonWordsChoice, commonWordsTrans)
   print str(b+1)+' : Back Done'
   f = f+1
   b = b+1
   return
 
-def makeFront(inKanji):
+def makeFront(inKanji, commonWordsChoice, commonWords):
   kanji = re.compile(u'%s' % inKanji, re.UNICODE)
   card = Image.new('RGB', (500, 300), (255,255,255))
   draw = ImageDraw.Draw(card)
@@ -42,7 +85,6 @@ def makeFront(inKanji):
   kodanshaIndex = ''
   jlptIndex = ''
   strokeC = ''
-  radIndex = ''
   freq = ''
   for character in kanjiInfo:
     for kodIndex in character.iter('dic_ref'):
@@ -52,9 +94,6 @@ def makeFront(inKanji):
       jlptIndex = jlptInd.text
     for sCount in character.iter('stroke_count'):
       strokeC = sCount.text
-    for radInd in character.iter('rad_value'):
-      if(radInd.get('rad_type') == 'classical'):
-        radIndex = radInd.text
     for frq in character.iter('freq'):
       freq = frq.text
   
@@ -73,65 +112,38 @@ def makeFront(inKanji):
     print e
     draw.text((40,180), 'No Stroke Order Diagram Image', font=font, fill=(255,0,0))
   
-  #start pull words from jmdic and get 6 example compounds
-  jmdicInfo = jmdic(inKanji)
-  commonWords = []
-  commonWordsChoice = []
-  duplicate = 0
-
-  for entry in jmdicInfo:
-    for elem in entry.iter('ke_pri'):
-      if((elem.text == 'ichi1' or elem.text == 'news1' or elem.text == 'spec1' or elem.text == 'gai1')):
-        for tag in entry.iter('keb'):
-          if(re.search(kanji, tag.text)):
-            for words in commonWords:
-              duplicate = 0
-              if(words == tag.text):
-                duplicate = 1
-            if(duplicate != 1):
-              commonWords.append(tag.text)
-  
+  #draw compunds
   font = ImageFont.truetype(fontSanSerif, 18)
   i = 0
-  if(len(commonWords) > 6):
-    words = 6
-    while i < words:
-      rand = random.randint(0, len(commonWords)-1)
-      for rands in commonWordsChoice:
-        duplicate = 0
-        if(rands == rand):
-          duplicate = 1
-      
-      while duplicate == 1:
-        rand = random.randint(0, len(commonWords)-1)
-      commonWordsChoice.append(rand)
-      draw.text((160, 21*(i+1)+10), str(i+1)+'. '+commonWords[rand], font=font, fill=(69,174,235))
-      i=i+1
-  else:
-    words = len(commonWords)
-    while i < words:
-      draw.text((160, 21*(i+1)+10), str(i+1)+'. '+commonWords[i], font=font, fill=(69,174,235))
-      i=i+1
-  #get that radical!
-  radInfo = radfile(radIndex)
-  if(len(radInfo) > 0):
-    draw.text((340, 150), 'Radical: ', font=font, fill=(69,174,235))
-    font = ImageFont.truetype(fontSanSerif, 52)
-    draw.text((420, 115), radInfo, font=font, fill=(69,174,235))
+  while i < len(commonWordsChoice):
+    draw.text((160, 21*(i+1)+10), str(i+1)+'. '+commonWords[commonWordsChoice[i]], font=font, fill=(69,174,235))
+    i = i+1
     
   card.save('cards/testfront.png')
   return
 
-def makeBack(inKanji):
+def makeBack(inKanji, commonWordsChoice, commonWordsTrans):
   card = Image.new('RGB', (500, 300), (255,255,255))
   draw = ImageDraw.Draw(card)
   kanjiInfo = kanjidic(inKanji)
   on = []
   kun = []
   english = []
-  #for li in kanjiInfo:
-      #on.append([x for x in li.split(' ') if is_on(x[0])][0])
-  #print on
+  
+  #draw compunds
+  font = ImageFont.truetype(fontSmall, 14)
+  i = 0
+  while i < len(commonWordsChoice):
+    draw.text((20, 100+(21*(i+1))), str(i+1)+'.', font=font, fill=(69,174,235))
+    j = 0
+    while j < len(commonWordsTrans[commonWordsChoice[i]]):
+      pos = 0
+      for gloss in commonWordsTrans[commonWordsChoice[i]]:
+        draw.text((40+pos, 100+(21*(i+1))), gloss+'; ', font=font, fill=(69,174,235))
+        pos = pos + (len(gloss)*14)
+      j = j+1
+    i = i+1
+  
   card.save('cards/testback.png')
   return
 
@@ -220,7 +232,6 @@ def is_on(reading):
 def is_kun(reading):
   return not (is_latin(reading) or is_on(reading))
 
-inKanji = u'車'.strip()
-i = 0
+inKanji = u'水'.strip()
 
 makeCards(inKanji)
