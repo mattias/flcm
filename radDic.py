@@ -5,7 +5,6 @@
 
 import re, os, sys
 import random
-import Image, ImageDraw, ImageFont
 try:
   from lxml import etree
   print("running with lxml.etree")
@@ -17,7 +16,7 @@ def kanxiRadDic(radicalList):
   listNewDic = []
   i = 0
 
-  while i < 50:
+  while i < 5:
     kanjiList = kanjidic2kanxi(str(i+1))
     for kanji in kanjiList:
       for character in kanjiList:
@@ -26,6 +25,7 @@ def kanxiRadDic(radicalList):
             if(int(kanxi.text) == i+1):
               listNewDic.append(character)
     i=i+1
+    print i
     
   for character in listNewDic:
     for literal in character.iter('literal'):
@@ -33,26 +33,9 @@ def kanxiRadDic(radicalList):
   newDic.close()
   return
 
-def kanjidic2(inKanji):
-  kanji = re.compile(u'^%s' % inKanji, re.UNICODE)
-  kanjiHit = []
-  #list will be in order: 1: character, 2: KKLD indx, 3: JLPT, 4: Stroke Count
-  # 5: Radical, 6: meaning, 7: onyomi, 8: kunyomi, 9: newspaper freq
-  kanjidic2 = etree.parse('dictionaries/kanjidic2.xml')
-  root = kanjidic2.getroot()
-  for character in root:
-    for literal in character.iter('literal'):
-      if(re.search(kanji, literal.text)):
-        kanjiHit.append(character)
-        break
-        
-  return kanjiHit
-
 def kanjidic2kanxi(kanxiNum):
   kanxiRe = re.compile(u'^%s$' % kanxiNum, re.UNICODE)
   kanxiHit = []
-  #list will be in order: 1: character, 2: KKLD indx, 3: JLPT, 4: Stroke Count
-  # 5: Radical, 6: meaning, 7: onyomi, 8: kunyomi, 9: newspaper freq
   kanjidic2 = etree.parse('dictionaries/kanjidic2.xml')
   root = kanjidic2.getroot()
   for character in root:
