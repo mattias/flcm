@@ -24,6 +24,7 @@ def makeCards(inKanji):
   commonWords = []
   commonWordsTrans = []
   commonWordsChoice = []
+  commonWordsHir = []
   duplicate = 0
 
   for entry in jmdicInfo:
@@ -41,10 +42,14 @@ def makeCards(inKanji):
               for gloss in entry.iter('gloss'):
                 temp.append(gloss.text)
               commonWordsTrans.append(temp)
+              temp = []
+              for hiragana in entry.iter('reb'):
+                temp.append(hiragana.text)
+              commonWordsHir.append(temp)
   i = 0
   if(len(commonWords) > 6):
     words = 6
-    while i < words:
+    """while i < words:
       rand = random.randint(0, len(commonWords)-1)
       for rands in commonWordsChoice:
         duplicate = 0
@@ -52,8 +57,9 @@ def makeCards(inKanji):
           duplicate = 1
       
       while duplicate == 1:
-        rand = random.randint(0, len(commonWords)-1)
-      commonWordsChoice.append(rand)
+        rand = random.randint(0, len(commonWords)-1)"""
+    while i < words:
+      commonWordsChoice.append(i)
       i=i+1
   else:
     words = len(commonWords)
@@ -65,7 +71,7 @@ def makeCards(inKanji):
   makeFront(inKanji, commonWordsChoice, commonWords)
   print str(f+1)+' : Front Done'
   b = 0
-  makeBack(inKanji, commonWordsChoice, commonWordsTrans)
+  makeBack(inKanji, commonWordsChoice, commonWordsTrans, commonWordsHir)
   print str(b+1)+' : Back Done'
   f = f+1
   b = b+1
@@ -122,26 +128,38 @@ def makeFront(inKanji, commonWordsChoice, commonWords):
   card.save('cards/testfront.png')
   return
 
-def makeBack(inKanji, commonWordsChoice, commonWordsTrans):
+def makeBack(inKanji, commonWordsChoice, commonWordsTrans, commonWordsHir):
   card = Image.new('RGB', (500, 300), (255,255,255))
   draw = ImageDraw.Draw(card)
-  kanjiInfo = kanjidic(inKanji)
-  on = []
-  kun = []
-  english = []
+
+  #Draw on/kun yomi
+  kanjiInfo = kanjidic2(inKanji)
+  onyomi = []
+  kunyomi = []
+  meaning = []
+  for character in kanjiInfo:
+    for on in character.iter('reading'):
+      if(on.get('r_type') == 'ja_on'):
+        onyomi.append(on.text)
+    for kun in character.iter('reading'):
+      if(kun.get('r_type') == 'ja_kun'):
+        kunyomi.append(kun.text)
+    for mean in character.iter('meaning'):
+      if(not mean.get('m_lang')):
+        meaning.append(mean.text)
+  
+  font = ImageFont.truetype(fontSanSerif, 26)
+  draw.text((20, 180), "; ".join(onyomi), font=font, fill=(69,174,235))
+  draw.text((20, 230), "; ".join(kunyomi), font=font, fill=(69,174,235))
+  font = ImageFont.truetype(fontSanSerif, 28)
+  draw.text((20, 60), "\n".join(meaning), font=font, fill=(69,174,235))
   
   #draw compunds
   font = ImageFont.truetype(fontSmall, 14)
   i = 0
   while i < len(commonWordsChoice):
-    draw.text((20, 100+(21*(i+1))), str(i+1)+'.', font=font, fill=(69,174,235))
-    j = 0
-    while j < len(commonWordsTrans[commonWordsChoice[i]]):
-      pos = 0
-      for gloss in commonWordsTrans[commonWordsChoice[i]]:
-        draw.text((40+pos, 100+(21*(i+1))), gloss+'; ', font=font, fill=(69,174,235))
-        pos = pos + (len(gloss)*14)
-      j = j+1
+    draw.text((160, 20+(21*(i+1))), str(i+1)+'.', font=font, fill=(69,174,235))
+    draw.text((180, 20+(21*(i+1))), '('+'; '.join(commonWordsHir[commonWordsChoice[i]])+'): '+'; '.join(commonWordsTrans[commonWordsChoice[i]][:3]) , font=font, fill=(69,174,235))
     i = i+1
   
   card.save('cards/testback.png')
@@ -232,6 +250,6 @@ def is_on(reading):
 def is_kun(reading):
   return not (is_latin(reading) or is_on(reading))
 
-inKanji = u'水'.strip()
+inKanji = u'鉄'.strip()
 
 makeCards(inKanji)
