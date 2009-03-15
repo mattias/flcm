@@ -18,8 +18,14 @@ fontSanSerif = '/usr/share/fonts/truetype/kochi/kochi-gothic.ttf'
 fontSmall = '/usr/share/fonts/truetype/freefont/FreeSans.ttf'
 
 def makeCards(inKanji):
+  f = 0
   makeFront(inKanji)
+  print str(f+1)+' : Front Done'
+  b = 0
   makeBack(inKanji)
+  print str(b+1)+' : Back Done'
+  f = f+1
+  b = b+1
   return
 
 def makeFront(inKanji):
@@ -32,24 +38,36 @@ def makeFront(inKanji):
   draw.text((30, 30), inKanji, font=font, fill=(69,174,235))
     
   # Get various field infos and draw it to the card
-  kanjiInfo = kanjidic(inKanji)
+  kanjiInfo = kanjidic2(inKanji)
   kodanshaIndex = ''
   jlptIndex = ''
   strokeC = ''
-  for li in kanjiInfo:
-    kodanshaIndex = [x for x in li.split(' ') if x.startswith(u'DK')][0]
-    jlptIndex = [x for x in li.split(' ') if x.startswith(u'J')][0]
-    strokeC = [x for x in li.split(' ') if x.startswith(u'S')][0]
-    
+  radIndex = ''
+  freq = ''
+  for character in kanjiInfo:
+    for kodIndex in character.iter('dic_ref'):
+      if(kodIndex.get('dr_type') == 'halpern_kkld'):
+        kodanshaIndex = kodIndex.text
+    for jlptInd in character.iter('jlpt'):
+      jlptIndex = jlptInd.text
+    for sCount in character.iter('stroke_count'):
+      strokeC = sCount.text
+    for radInd in character.iter('rad_value'):
+      if(radInd.get('rad_type') == 'classical'):
+        radIndex = radInd.text
+    for frq in character.iter('freq'):
+      freq = frq.text
+  
   font = ImageFont.truetype(fontSmall, 18)
-  draw.text((325, 20), 'KKLD Index: '+kodanshaIndex[2:], font=font, fill=(69,174,235))
+  draw.text((325, 20), 'KKLD Index: '+kodanshaIndex, font=font, fill=(69,174,235))
   font = ImageFont.truetype(fontSmall, 12)
   draw.text((430, 45), 'JLPT'+jlptIndex, font=font, fill=(69,174,235))
-  draw.text((40, 140), 'Stroke Count: '+strokeC[1:], font=font, fill=(69,174,235))
+  draw.text((40, 140), 'Stroke Count: '+strokeC, font=font, fill=(69,174,235))
+  draw.text((40, 10), 'Frequency: '+freq, font=font, fill=(69,174,235))
 
   #open SOD and put it at bottom of card
   try:
-    sod = Image.open(sodPath+kodanshaIndex+'.png')
+    sod = Image.open(sodPath+'DK'+kodanshaIndex+'.png')
     card.paste(sod, (40, 180))
   except IOError, e:
     print e
@@ -94,12 +112,12 @@ def makeFront(inKanji):
     while i < words:
       draw.text((160, 21*(i+1)+10), str(i+1)+'. '+commonWords[i], font=font, fill=(69,174,235))
       i=i+1
-  
   #get that radical!
-  radkInfo = radkfile(inKanji, "159")
-  if(len(radkInfo) > 0):
-    for radk in radkInfo:
-      draw.text((130, 160), 'This is a radical!', font=font, fill=(69,174,235))
+  radInfo = radfile(radIndex)
+  if(len(radInfo) > 0):
+    draw.text((340, 150), 'Radical: ', font=font, fill=(69,174,235))
+    font = ImageFont.truetype(fontSanSerif, 52)
+    draw.text((420, 115), radInfo, font=font, fill=(69,174,235))
     
   card.save('cards/testfront.png')
   return
@@ -130,18 +148,17 @@ def jmdic(inKanji):
   return lists
 
 def kanjidic2(inKanji):
-  lines = []
-  line = []
-  #list will be in order: 1: character, 2: KKLD indx, 3: JLPT, 4: Stroke Count
-  # 5: Radical, 6: meaning, 7: onyomi, 8: kunyomi, 9: newspaper freq
+  kanji = re.compile(u'^%s' % inKanji, re.UNICODE)
+  kanjiHit = []
   kanjidic2 = etree.parse('dictionaries/kanjidic2.xml')
   root = kanjidic2.getroot()
   for character in root:
     for literal in character.iter('literal'):
-      print literal
-        
+      if(re.search(kanji, literal.text)):
+        kanjiHit.append(character)
+        return kanjiHit
   
-  return
+  return kanjiHit
 
 def kanjidic(inKanji):
   kanji = re.compile(u'^%s' % inKanji, re.UNICODE)
@@ -160,30 +177,22 @@ def kanjidic(inKanji):
   kanjidic.close()
   return lines
 
-def radkfile(inKanji, radNum):
-  kanji = re.compile(u'^\$ %s' % inKanji, re.UNICODE)
-  radical = re.compile(u'^\$', re.UNICODE)
-  radkdic = open('dictionaries/radkfile2-utf8', 'r')
-  radList = []
+def radfile(radNum):
+  raddic = open('dictionaries/classicalRad', 'r')
   radHit = ''
-  line = radkdic.readline().decode('utf_8')
-  rnum = 0
-  
+  radList = []
+  line = raddic.readline().decode('utf_8')
   while line:
-    if(re.search(radical, line)):
-      rnum = rnum + 1
-      if(re.search(kanji, line)):
-        print rnum
-    if(re.search(radical, line)):
-      radList.append(line.strip())
-    line = radkdic.readline().decode('utf_8')
+    radList.append(line.strip())
+    
+    line = raddic.readline().decode('utf_8')
+    
+  radHit = radList[int(radNum)-1]
   
-  radHit.append(radList[int(radNum)])
-
-  radkdic.close()
+  raddic.close()
   return radHit
 
-def radkfileworking(inKanji, radNum):
+def radkfile(inKanji, radNum):
   kanji = re.compile(u'^\$ %s' % inKanji, re.UNICODE)
   radical = re.compile(u'^\$', re.UNICODE)
   radkdic = open('dictionaries/radkfile2-utf8', 'r')
@@ -212,5 +221,6 @@ def is_kun(reading):
   return not (is_latin(reading) or is_on(reading))
 
 inKanji = u'車'.strip()
+i = 0
 
 makeCards(inKanji)
