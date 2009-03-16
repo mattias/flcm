@@ -32,7 +32,7 @@ def makeCards(inKanji):
   commonWordsChoice = []
   commonWordsHir = []
   duplicate = 0
-
+  
   for entry in jmdicInfo:
     for elem in entry.iter('ke_pri'):
       if((elem.text == 'ichi1' or elem.text == 'news1' or elem.text == 'spec1' or elem.text == 'gai1')):
@@ -52,6 +52,7 @@ def makeCards(inKanji):
               for hiragana in entry.iter('reb'):
                 temp.append(hiragana.text)
               commonWordsHir.append(temp)
+      
   i = 0
   if(len(commonWords) > 6):
     words = 6
@@ -177,11 +178,15 @@ def jmdic(inKanji):
   kanji = re.compile(u'%s' % inKanji, re.UNICODE)
   jmdic = etree.parse('dictionaries/JMdict_e-utf8')
   root = jmdic.getroot()
+  i = 0
   for entry in root:
-    for keb in entry.iter('keb'):
-      if(re.search(kanji, keb.text)):
-        lists.append(entry)
-        
+    if( i < 6 ):
+      for keb in entry.iter('keb'):
+        if(re.search(kanji, keb.text)):
+          lists.append(entry)
+          i = i+1
+    else:
+      break
   return lists
 
 def kanjidic2(inKanji):
@@ -189,12 +194,15 @@ def kanjidic2(inKanji):
   kanjiHit = []
   kanjidic2 = etree.parse('dictionaries/kanjidic2.xml')
   root = kanjidic2.getroot()
+  stop = 0
+  
   for character in root:
     for literal in character.iter('literal'):
       if(re.search(kanji, literal.text)):
         kanjiHit.append(character)
-        return kanjiHit
-  
+        stop = 1
+    if(stop == 1):
+      break
   return kanjiHit
 
 def kanjidic(inKanji):
@@ -269,13 +277,10 @@ for char in root.iter('character'):
         try:
           sod = Image.open(sodPath+'DK'+kodIndex.text+'.png')
           writeThis = 1
-          print 'Worked...'
         except IOError:
-          print '...or not.'
           writeThis = 0
           continue
   if(writeThis == 1):
-    print 'Accepted...'
     for literal in char.iter('literal'):
       print 'Creating DK'+kodIndex.text+'.png... ('+literal.text+')'
       makeCards(literal.text)
