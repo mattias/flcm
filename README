@@ -1,0 +1,5 @@
+FLCM: Flashcard Maker
+
+Modules required:
+PIL(Python Imaging Library): http://www.pythonware.com/products/pil/
+Lxml: http://codespeak.net/lxml/
