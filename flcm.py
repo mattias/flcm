@@ -280,8 +280,8 @@ for char in root.iter('character'):
         except IOError:
           writeThis = 0
           continue
-  if(writeThis == 1):
-    for literal in char.iter('literal'):
-      print 'Creating DK'+kodIndex.text+'.png... ('+literal.text+')'
-      makeCards(literal.text)
-      print 'Done.'
+    if(writeThis == 1):
+      for literal in char.iter('literal'):
+        print 'Creating DK'+kodIndex.text+'.png... ('+literal.text+')'
+        makeCards(literal.text)
+        print 'Done.'
