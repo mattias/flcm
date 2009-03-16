@@ -20,6 +20,7 @@ orange = (211,100,59)
 red = (255,0,0)
 cardBg = (255,255,255)
 cardSize = (800, 300)
+withSOD = 1
 
 def makeCards(inKanji):
 
@@ -151,12 +152,12 @@ def makeBack(inKanji, commonWordsChoice, commonWordsTrans, commonWordsHir):
       if(kodIndex.get('dr_type') == 'halpern_kkld'):
         kodanshaIndex = kodIndex.text
   
-  font = ImageFont.truetype(fontSanSerif, 26)
-  draw.text((20, 170), "; ".join(onyomi[:5]), font=font, fill=blue)
-  draw.text((20, 230), "; ".join(kunyomi[:5]), font=font, fill=blue)
-  draw.text((20, 195), "; ".join(onyomi[5:10]), font=font, fill=blue)
-  draw.text((20, 255), "; ".join(kunyomi[5:10]), font=font, fill=blue)
-  font = ImageFont.truetype(fontSanSerif, 28)
+  font = ImageFont.truetype(fontSanSerif, 18)
+  draw.text((20, 170), "; ".join(onyomi[:6]), font=font, fill=blue)
+  draw.text((20, 230), "; ".join(kunyomi[:6]), font=font, fill=blue)
+  draw.text((20, 195), "; ".join(onyomi[6:12]), font=font, fill=blue)
+  draw.text((20, 255), "; ".join(kunyomi[6:12]), font=font, fill=blue)
+  font = ImageFont.truetype(fontSmall, 14)
   draw.text((20, 60), " ".join(meaning[:1]), font=font, fill=orange)
 
   
@@ -264,14 +265,15 @@ for char in root.iter('character'):
   writeThis = 0
   for kodIndex in char.iter('dic_ref'):
     if(kodIndex.get('dr_type') == 'halpern_kkld'):
-      try:
-        sod = Image.open(sodPath+'DK'+kodIndex.text+'.png')
-        writeThis = 1
-        print 'Worked...'
-      except IOError:
-        print '...or not.'
-        writeThis = 0
-        continue
+      if(withSOD == 1):
+        try:
+          sod = Image.open(sodPath+'DK'+kodIndex.text+'.png')
+          writeThis = 1
+          print 'Worked...'
+        except IOError:
+          print '...or not.'
+          writeThis = 0
+          continue
   if(writeThis == 1):
     print 'Accepted...'
     for literal in char.iter('literal'):
