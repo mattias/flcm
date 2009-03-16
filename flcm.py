@@ -15,6 +15,11 @@ sodPath = 'dictionaries/sod-utf8/'
 fontSerif = '/usr/share/fonts/truetype/kochi/kochi-mincho.ttf'
 fontSanSerif = '/usr/share/fonts/truetype/kochi/kochi-gothic.ttf'
 fontSmall = '/usr/share/fonts/truetype/freefont/FreeSans.ttf'
+blue = (21,38,195)
+orange = (211,100,59)
+red = (255,0,0)
+cardBg = (255,255,255)
+cardSize = (800, 300)
 
 def makeCards(inKanji):
 
@@ -67,24 +72,18 @@ def makeCards(inKanji):
       commonWordsChoice.append(i)
       i=i+1
 
-  f = 0
   makeFront(inKanji, commonWordsChoice, commonWords)
-  print str(f+1)+' : Front Done'
-  b = 0
   makeBack(inKanji, commonWordsChoice, commonWordsTrans, commonWordsHir)
-  print str(b+1)+' : Back Done'
-  f = f+1
-  b = b+1
   return
 
 def makeFront(inKanji, commonWordsChoice, commonWords):
   kanji = re.compile(u'%s' % inKanji, re.UNICODE)
-  card = Image.new('RGB', (500, 300), (255,255,255))
+  card = Image.new('RGB', cardSize, cardBg)
   draw = ImageDraw.Draw(card)
     
   # Draw the kanji on to the front card
   font = ImageFont.truetype(fontSerif, 102)
-  draw.text((30, 30), inKanji, font=font, fill=(69,174,235))
+  draw.text((30, 30), inKanji, font=font, fill=orange)
     
   # Get various field infos and draw it to the card
   kanjiInfo = kanjidic2(inKanji)
@@ -104,11 +103,11 @@ def makeFront(inKanji, commonWordsChoice, commonWords):
       freq = frq.text
   
   font = ImageFont.truetype(fontSmall, 18)
-  draw.text((325, 20), 'KKLD Index: '+kodanshaIndex, font=font, fill=(69,174,235))
+  draw.text((625, 20), 'KKLD Index: '+kodanshaIndex, font=font, fill=blue)
   font = ImageFont.truetype(fontSmall, 12)
-  draw.text((430, 45), 'JLPT'+jlptIndex, font=font, fill=(69,174,235))
-  draw.text((40, 140), 'Stroke Count: '+strokeC, font=font, fill=(69,174,235))
-  draw.text((40, 10), 'Frequency: '+freq, font=font, fill=(69,174,235))
+  draw.text((730, 45), 'JLPT'+jlptIndex, font=font, fill=blue)
+  draw.text((40, 140), 'Stroke Count: '+strokeC, font=font, fill=blue)
+  draw.text((40, 10), 'Frequency: '+freq, font=font, fill=blue)
 
   #open SOD and put it at bottom of card
   try:
@@ -116,20 +115,20 @@ def makeFront(inKanji, commonWordsChoice, commonWords):
     card.paste(sod, (40, 180))
   except IOError, e:
     print e
-    draw.text((40,180), 'No Stroke Order Diagram Image', font=font, fill=(255,0,0))
+    draw.text((40,180), 'No Stroke Order Diagram Image', font=font, fill=red)
   
   #draw compunds
   font = ImageFont.truetype(fontSanSerif, 18)
   i = 0
   while i < len(commonWordsChoice):
-    draw.text((160, 21*(i+1)+10), str(i+1)+'. '+commonWords[commonWordsChoice[i]], font=font, fill=(69,174,235))
+    draw.text((160, 21*(i+1)+10), str(i+1)+'. '+commonWords[commonWordsChoice[i]], font=font, fill=blue)
     i = i+1
     
-  card.save('cards/testfront.png')
+  card.save('cards/front/DK'+kodanshaIndex+'.png')
   return
 
 def makeBack(inKanji, commonWordsChoice, commonWordsTrans, commonWordsHir):
-  card = Image.new('RGB', (500, 300), (255,255,255))
+  card = Image.new('RGB', cardSize, cardBg)
   draw = ImageDraw.Draw(card)
 
   #Draw on/kun yomi
@@ -137,6 +136,7 @@ def makeBack(inKanji, commonWordsChoice, commonWordsTrans, commonWordsHir):
   onyomi = []
   kunyomi = []
   meaning = []
+  kodanshaIndex = ''
   for character in kanjiInfo:
     for on in character.iter('reading'):
       if(on.get('r_type') == 'ja_on'):
@@ -147,22 +147,28 @@ def makeBack(inKanji, commonWordsChoice, commonWordsTrans, commonWordsHir):
     for mean in character.iter('meaning'):
       if(not mean.get('m_lang')):
         meaning.append(mean.text)
+    for kodIndex in character.iter('dic_ref'):
+      if(kodIndex.get('dr_type') == 'halpern_kkld'):
+        kodanshaIndex = kodIndex.text
   
   font = ImageFont.truetype(fontSanSerif, 26)
-  draw.text((20, 180), "; ".join(onyomi), font=font, fill=(69,174,235))
-  draw.text((20, 230), "; ".join(kunyomi), font=font, fill=(69,174,235))
+  draw.text((20, 170), "; ".join(onyomi[:5]), font=font, fill=blue)
+  draw.text((20, 230), "; ".join(kunyomi[:5]), font=font, fill=blue)
+  draw.text((20, 195), "; ".join(onyomi[5:10]), font=font, fill=blue)
+  draw.text((20, 255), "; ".join(kunyomi[5:10]), font=font, fill=blue)
   font = ImageFont.truetype(fontSanSerif, 28)
-  draw.text((20, 60), "\n".join(meaning), font=font, fill=(69,174,235))
+  draw.text((20, 60), " ".join(meaning[:1]), font=font, fill=orange)
+
   
   #draw compunds
   font = ImageFont.truetype(fontSmall, 14)
   i = 0
   while i < len(commonWordsChoice):
-    draw.text((160, 20+(21*(i+1))), str(i+1)+'.', font=font, fill=(69,174,235))
-    draw.text((180, 20+(21*(i+1))), '('+'; '.join(commonWordsHir[commonWordsChoice[i]])+'): '+'; '.join(commonWordsTrans[commonWordsChoice[i]][:3]) , font=font, fill=(69,174,235))
+    draw.text((220, 20+(21*(i+1))), str(i+1)+'.', font=font, fill=blue)
+    draw.text((240, 20+(21*(i+1))), '('+'; '.join(commonWordsHir[commonWordsChoice[i]][:1])+'): '+'; '.join(commonWordsTrans[commonWordsChoice[i]][:1]) , font=font, fill=blue)
     i = i+1
   
-  card.save('cards/testback.png')
+  card.save('cards/back/DK'+kodanshaIndex+'.png')
   return
 
 def jmdic(inKanji):
@@ -250,6 +256,25 @@ def is_on(reading):
 def is_kun(reading):
   return not (is_latin(reading) or is_on(reading))
 
-inKanji = u'鉄'.strip()
 
-makeCards(inKanji)
+kanjis = etree.parse('dictionaries/kanjidic2.xml')
+root = kanjis.getroot()
+
+for char in root.iter('character'):
+  writeThis = 0
+  for kodIndex in char.iter('dic_ref'):
+    if(kodIndex.get('dr_type') == 'halpern_kkld'):
+      try:
+        sod = Image.open(sodPath+'DK'+kodIndex.text+'.png')
+        writeThis = 1
+        print 'Worked...'
+      except IOError:
+        print '...or not.'
+        writeThis = 0
+        continue
+  if(writeThis == 1):
+    print 'Accepted...'
+    for literal in char.iter('literal'):
+      print 'Creating DK'+kodIndex.text+'.png... ('+literal.text+')'
+      makeCards(literal.text)
+      print 'Done.'
