@@ -4,6 +4,7 @@
 # flcm.py
 import re, os, sys
 import random
+import textwrap
 import Image, ImageDraw, ImageFont
 try:
   from lxml import etree
@@ -29,13 +30,12 @@ def makeCards(inKanji):
   jmdicInfo = jmdic(inKanji)
   commonWords = []
   commonWordsTrans = []
-  commonWordsChoice = []
   commonWordsHir = []
   duplicate = 0
-  
+  areCommons = 0
   for entry in jmdicInfo:
     for elem in entry.iter('ke_pri'):
-      if((elem.text == 'ichi1' or elem.text == 'news1' or elem.text == 'spec1' or elem.text == 'gai1')):
+      if(elem.text == 'ichi1' or elem.text == 'news1' or elem.text == 'spec1' or elem.text == 'gai1'):
         for tag in entry.iter('keb'):
           if(re.search(kanji, tag.text)):
             for words in commonWords:
@@ -44,6 +44,7 @@ def makeCards(inKanji):
                 duplicate = 1
             if(duplicate != 1):
               commonWords.append(tag.text)
+              areCommons = 1
               temp = []
               for gloss in entry.iter('gloss'):
                 temp.append(gloss.text)
@@ -52,33 +53,35 @@ def makeCards(inKanji):
               for hiragana in entry.iter('reb'):
                 temp.append(hiragana.text)
               commonWordsHir.append(temp)
-      
-  i = 0
-  if(len(commonWords) > 6):
+              
+  if(areCommons == 0):
+    for entry in jmdicInfo:
+      for tag in entry.iter('keb'):
+        if(re.search(kanji, tag.text)):
+          for words in commonWords:
+            duplicate = 0
+            if(words == tag.text):
+              duplicate = 1
+          if(duplicate != 1):
+            commonWords.append(tag.text)
+            temp = []
+            for gloss in entry.iter('gloss'):
+              temp.append(gloss.text)
+            commonWordsTrans.append(temp)
+            temp = []
+            for hiragana in entry.iter('reb'):
+              temp.append(hiragana.text)
+            commonWordsHir.append(temp)
+  words = 0
+  if len(commonWords) > 6:
     words = 6
-    """while i < words:
-      rand = random.randint(0, len(commonWords)-1)
-      for rands in commonWordsChoice:
-        duplicate = 0
-        if(rands == rand):
-          duplicate = 1
-      
-      while duplicate == 1:
-        rand = random.randint(0, len(commonWords)-1)"""
-    while i < words:
-      commonWordsChoice.append(i)
-      i=i+1
   else:
     words = len(commonWords)
-    while i < words:
-      commonWordsChoice.append(i)
-      i=i+1
-
-  makeFront(inKanji, commonWordsChoice, commonWords)
-  makeBack(inKanji, commonWordsChoice, commonWordsTrans, commonWordsHir)
+  makeFront(inKanji, commonWords, words)
+  makeBack(inKanji, commonWordsTrans, commonWordsHir, words)
   return
 
-def makeFront(inKanji, commonWordsChoice, commonWords):
+def makeFront(inKanji, commonWords, words):
   kanji = re.compile(u'%s' % inKanji, re.UNICODE)
   card = Image.new('RGB', cardSize, cardBg)
   draw = ImageDraw.Draw(card)
@@ -122,14 +125,14 @@ def makeFront(inKanji, commonWordsChoice, commonWords):
   #draw compunds
   font = ImageFont.truetype(fontSanSerif, 18)
   i = 0
-  while i < len(commonWordsChoice):
-    draw.text((160, 21*(i+1)+10), str(i+1)+'. '+commonWords[commonWordsChoice[i]], font=font, fill=blue)
+  while i < words:
+    draw.text((160, 21*(i+1)+10), str(i+1)+'. '+commonWords[i], font=font, fill=blue)
     i = i+1
     
   card.save('cards/front/DK'+kodanshaIndex+'.png')
   return
 
-def makeBack(inKanji, commonWordsChoice, commonWordsTrans, commonWordsHir):
+def makeBack(inKanji, commonWordsTrans, commonWordsHir, words):
   card = Image.new('RGB', cardSize, cardBg)
   draw = ImageDraw.Draw(card)
 
@@ -159,15 +162,21 @@ def makeBack(inKanji, commonWordsChoice, commonWordsTrans, commonWordsHir):
   draw.text((20, 195), "; ".join(onyomi[6:12]), font=font, fill=blue)
   draw.text((20, 255), "; ".join(kunyomi[6:12]), font=font, fill=blue)
   font = ImageFont.truetype(fontSmall, 14)
-  draw.text((20, 60), " ".join(meaning[:1]), font=font, fill=orange)
+  draw.text((20, 20), " ".join(meaning[0:1]), font=font, fill=orange)
+  draw.text((20, 40), " ".join(meaning[1:2]), font=font, fill=orange)
+  draw.text((20, 60), " ".join(meaning[2:3]), font=font, fill=orange)
+  draw.text((20, 80), " ".join(meaning[3:4]), font=font, fill=orange)
+  draw.text((20, 100), " ".join(meaning[4:5]), font=font, fill=orange)
+  draw.text((20, 120), " ".join(meaning[5:6]), font=font, fill=orange)
+  draw.text((20, 140), " ".join(meaning[6:7]), font=font, fill=orange)
 
   
   #draw compunds
   font = ImageFont.truetype(fontSmall, 14)
   i = 0
-  while i < len(commonWordsChoice):
+  while i < words:
     draw.text((220, 20+(21*(i+1))), str(i+1)+'.', font=font, fill=blue)
-    draw.text((240, 20+(21*(i+1))), '('+'; '.join(commonWordsHir[commonWordsChoice[i]][:1])+'): '+'; '.join(commonWordsTrans[commonWordsChoice[i]][:1]) , font=font, fill=blue)
+    draw.text((240, 20+(21*(i+1))), '('+'; '.join(commonWordsHir[i][:1])+'): '+'; '.join(commonWordsTrans[i][:1]), font=font, fill=blue)
     i = i+1
   
   card.save('cards/back/DK'+kodanshaIndex+'.png')
@@ -178,15 +187,10 @@ def jmdic(inKanji):
   kanji = re.compile(u'%s' % inKanji, re.UNICODE)
   jmdic = etree.parse('dictionaries/JMdict_e-utf8')
   root = jmdic.getroot()
-  i = 0
   for entry in root:
-    if( i < 6 ):
-      for keb in entry.iter('keb'):
-        if(re.search(kanji, keb.text)):
-          lists.append(entry)
-          i = i+1
-    else:
-      break
+    for keb in entry.iter('keb'):
+      if(re.search(kanji, keb.text)):
+        lists.append(entry)
   return lists
 
 def kanjidic2(inKanji):
@@ -205,70 +209,9 @@ def kanjidic2(inKanji):
       break
   return kanjiHit
 
-def kanjidic(inKanji):
-  kanji = re.compile(u'^%s' % inKanji, re.UNICODE)
-  kanjidic = open('dictionaries/kanjidic-utf8', 'r')
-  lines = []
-  line = kanjidic.readline().decode('utf_8')
-
-  while line:
-    if(re.search(kanji, line)):
-      lines.append(line.strip())
-      break
-      
-    line = kanjidic.readline().decode('utf_8')
-      
-  
-  kanjidic.close()
-  return lines
-
-def radfile(radNum):
-  raddic = open('dictionaries/classicalRad', 'r')
-  radHit = ''
-  radList = []
-  line = raddic.readline().decode('utf_8')
-  while line:
-    radList.append(line.strip())
-    
-    line = raddic.readline().decode('utf_8')
-    
-  radHit = radList[int(radNum)-1]
-  
-  raddic.close()
-  return radHit
-
-def radkfile(inKanji, radNum):
-  kanji = re.compile(u'^\$ %s' % inKanji, re.UNICODE)
-  radical = re.compile(u'^\$', re.UNICODE)
-  radkdic = open('dictionaries/radkfile2-utf8', 'r')
-  lines = []
-  line = radkdic.readline().decode('utf_8')
-  
-  while line:
-    if(re.search(kanji, line)):
-      lines.append(line.strip())
-      break
-    line = radkdic.readline().decode('utf_8')
-
-  radkdic.close()
-  return lines
-
-def is_latin(s):
-  return all(lambda x: 31 < ord(x) < 127, s)
-
-def is_katakana(reading):
-  return bool (reading) and chr(u"ァ") <= chr(reading[0]) <= chr(u"ヺ")
-
-def is_on(reading):
-  return is_katakana(reading)
-
-def is_kun(reading):
-  return not (is_latin(reading) or is_on(reading))
-
-
 kanjis = etree.parse('dictionaries/kanjidic2.xml')
 root = kanjis.getroot()
-
+done = 1
 for char in root.iter('character'):
   writeThis = 0
   for kodIndex in char.iter('dic_ref'):
@@ -280,8 +223,9 @@ for char in root.iter('character'):
         except IOError:
           writeThis = 0
           continue
-    if(writeThis == 1):
-      for literal in char.iter('literal'):
-        print 'Creating DK'+kodIndex.text+'.png... ('+literal.text+')'
-        makeCards(literal.text)
-        print 'Done.'
+      if(writeThis == 1):
+        for literal in char.iter('literal'):
+          print 'Creating DK'+kodIndex.text+'.png... ('+literal.text+')'
+          makeCards(literal.text)
+          print str(done)+' / 1513 Done.'
+          done += 1
