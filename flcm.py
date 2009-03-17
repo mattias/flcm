@@ -23,6 +23,11 @@ cardBg = (255,255,255)
 cardSize = (800, 300)
 withSOD = 1
 
+print 'Parsing dictionaries...'
+kanjidic2File = etree.parse('dictionaries/kanjidic2.xml')
+jmdicFile = etree.parse('dictionaries/JMdict_e-utf8')
+print '...done.'
+
 def makeCards(inKanji):
 
   #start pull words from jmdic and get 6 example compounds
@@ -185,8 +190,7 @@ def makeBack(inKanji, commonWordsTrans, commonWordsHir, words):
 def jmdic(inKanji):
   lists = []
   kanji = re.compile(u'%s' % inKanji, re.UNICODE)
-  jmdic = etree.parse('dictionaries/JMdict_e-utf8')
-  root = jmdic.getroot()
+  root = jmdicFile.getroot()
   for entry in root:
     for keb in entry.iter('keb'):
       if(re.search(kanji, keb.text)):
@@ -196,10 +200,8 @@ def jmdic(inKanji):
 def kanjidic2(inKanji):
   kanji = re.compile(u'^%s' % inKanji, re.UNICODE)
   kanjiHit = []
-  kanjidic2 = etree.parse('dictionaries/kanjidic2.xml')
-  root = kanjidic2.getroot()
   stop = 0
-  
+  root = kanjidic2File.getroot()
   for character in root:
     for literal in character.iter('literal'):
       if(re.search(kanji, literal.text)):
@@ -209,8 +211,7 @@ def kanjidic2(inKanji):
       break
   return kanjiHit
 
-kanjis = etree.parse('dictionaries/kanjidic2.xml')
-root = kanjis.getroot()
+root = kanjidic2File.getroot()
 done = 1
 for char in root.iter('character'):
   writeThis = 0
