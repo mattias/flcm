@@ -21,7 +21,7 @@ orange = (211,100,59)
 red = (255,0,0)
 cardBg = (255,255,255)
 cardSize = (800, 300)
-withSOD = 1
+withSOD = 0
 
 print 'Parsing dictionaries...'
 kanjidic2File = etree.parse('dictionaries/kanjidic2.xml')
@@ -31,52 +31,15 @@ print '...done.'
 def makeCards(inKanji):
 
   #start pull words from jmdic and get 6 example compounds
-  kanji = re.compile(u'%s' % inKanji, re.UNICODE)
   jmdicInfo = jmdic(inKanji)
   commonWords = []
   commonWordsTrans = []
   commonWordsHir = []
-  duplicate = 0
-  areCommons = 0
   for entry in jmdicInfo:
-    for elem in entry.iter('ke_pri'):
-      if(elem.text == 'ichi1' or elem.text == 'news1' or elem.text == 'spec1' or elem.text == 'gai1'):
-        for tag in entry.iter('keb'):
-          if(re.search(kanji, tag.text)):
-            for words in commonWords:
-              duplicate = 0
-              if(words == tag.text):
-                duplicate = 1
-            if(duplicate != 1):
-              commonWords.append(tag.text)
-              areCommons = 1
-              temp = []
-              for gloss in entry.iter('gloss'):
-                temp.append(gloss.text)
-              commonWordsTrans.append(temp)
-              temp = []
-              for hiragana in entry.iter('reb'):
-                temp.append(hiragana.text)
-              commonWordsHir.append(temp)
+    commonWords.append(entry['keb'])
+    commonWordsTrans.append(entry['gloss'])
+    commonWordsHir.append(entry['reb'])
               
-  if(areCommons == 0):
-    for entry in jmdicInfo:
-      for tag in entry.iter('keb'):
-        if(re.search(kanji, tag.text)):
-          for words in commonWords:
-            duplicate = 0
-            if(words == tag.text):
-              duplicate = 1
-          if(duplicate != 1):
-            commonWords.append(tag.text)
-            temp = []
-            for gloss in entry.iter('gloss'):
-              temp.append(gloss.text)
-            commonWordsTrans.append(temp)
-            temp = []
-            for hiragana in entry.iter('reb'):
-              temp.append(hiragana.text)
-            commonWordsHir.append(temp)
   words = 0
   if len(commonWords) > 6:
     words = 6
@@ -123,8 +86,8 @@ def makeFront(inKanji, commonWords, words):
   try:
     sod = Image.open(sodPath+'DK'+kodanshaIndex+'.png')
     card.paste(sod, (40, 180))
-  except IOError, e:
-    print e
+  except IOError:
+    print '... making this card without a SOD image...'
     draw.text((40,180), 'No Stroke Order Diagram Image', font=font, fill=red)
   
   #draw compunds
@@ -181,7 +144,7 @@ def makeBack(inKanji, commonWordsTrans, commonWordsHir, words):
   i = 0
   while i < words:
     draw.text((220, 20+(21*(i+1))), str(i+1)+'.', font=font, fill=blue)
-    draw.text((240, 20+(21*(i+1))), '('+'; '.join(commonWordsHir[i][:1])+'): '+'; '.join(commonWordsTrans[i][:1]), font=font, fill=blue)
+    draw.text((240, 20+(21*(i+1))), '('+commonWordsHir[i]+'): '+commonWordsTrans[i], font=font, fill=blue)
     i = i+1
   
   card.save('cards/back/DK'+kodanshaIndex+'.png')
@@ -189,13 +152,38 @@ def makeBack(inKanji, commonWordsTrans, commonWordsHir, words):
 
 def jmdic(inKanji):
   lists = []
+  listsRet = []
   kanji = re.compile(u'%s' % inKanji, re.UNICODE)
   root = jmdicFile.getroot()
+  areCommons = 0
   for entry in root:
-    for keb in entry.iter('keb'):
-      if(re.search(kanji, keb.text)):
-        lists.append(entry)
-  return lists
+    for elem in entry.iter('ke_pri'):
+      if(elem.text == 'ichi1' or elem.text == 'news1' or elem.text == 'spec1' or elem.text == 'gai1'):
+        for keb in entry.iter('keb'):
+          this = {}
+          if(re.search(kanji, keb.text)):
+            areCommons = 1
+            this['keb'] = keb.text
+            for gloss in entry.iter('gloss'):
+              this['gloss'] = gloss.text
+            for hiragana in entry.iter('reb'):
+              this['reb'] = hiragana.text
+            lists.append(this)
+            
+  if(areCommons == 0):
+    for entry in root:
+      for tag in entry.iter('keb'):
+        if(re.search(kanji, tag.text)):
+          this['keb'] = keb.text
+          for gloss in entry.iter('gloss'):
+            this['gloss'] = gloss.text
+          for hiragana in entry.iter('reb'):
+            this['reb'] = hiragana.text
+          lists.append(this)
+        
+  [listsRet.append(elem) for elem in lists if elem not in listsRet]
+  
+  return listsRet
 
 def kanjidic2(inKanji):
   kanji = re.compile(u'^%s' % inKanji, re.UNICODE)
@@ -213,6 +201,12 @@ def kanjidic2(inKanji):
 
 root = kanjidic2File.getroot()
 done = 1
+
+if withSOD == 1:
+  totalCards = 1513
+else:
+  totalCards = 2230
+  
 for char in root.iter('character'):
   writeThis = 0
   for kodIndex in char.iter('dic_ref'):
@@ -224,9 +218,11 @@ for char in root.iter('character'):
         except IOError:
           writeThis = 0
           continue
+      else:
+        writeThis = 1
       if(writeThis == 1):
         for literal in char.iter('literal'):
           print 'Creating DK'+kodIndex.text+'.png... ('+literal.text+')'
           makeCards(literal.text)
-          print str(done)+' / 1513 Done.'
+          print str(done)+' / '+str(totalCards)+' Done.'
           done += 1
