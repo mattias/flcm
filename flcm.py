@@ -4,7 +4,6 @@
 # flcm.py
 import re, os, sys
 import random
-import textwrap
 import Image, ImageDraw, ImageFont
 try:
   from lxml import etree
@@ -37,9 +36,9 @@ def makeCards(inKanji):
   commonWordsHir = []
   for entry in jmdicInfo:
     commonWords.append(entry['keb'])
-    commonWordsTrans.append(entry['gloss'])
+    commonWordsTrans.append(entry['gloss'][:2])
     commonWordsHir.append(entry['reb'])
-              
+
   words = 0
   if len(commonWords) > 6:
     words = 6
@@ -142,45 +141,55 @@ def makeBack(inKanji, commonWordsTrans, commonWordsHir, words):
   #draw compunds
   font = ImageFont.truetype(fontSmall, 14)
   i = 0
+  
   while i < words:
     draw.text((220, 20+(21*(i+1))), str(i+1)+'.', font=font, fill=blue)
-    draw.text((240, 20+(21*(i+1))), '('+commonWordsHir[i]+'): '+commonWordsTrans[i], font=font, fill=blue)
+    draw.text((240, 20+(21*(i+1))), '('+commonWordsHir[i]+'): '+'; '.join(commonWordsTrans[i][:2]), font=font, fill=blue)
     i = i+1
   
   card.save('cards/back/DK'+kodanshaIndex+'.png')
   return
 
 def jmdic(inKanji):
+  listCommon = []
+  listUnCommon = []
   lists = []
   listsRet = []
   kanji = re.compile(u'%s' % inKanji, re.UNICODE)
   root = jmdicFile.getroot()
-  areCommons = 0
   for entry in root:
+    common = 0
     for elem in entry.iter('ke_pri'):
-      if(elem.text == 'ichi1' or elem.text == 'news1' or elem.text == 'spec1' or elem.text == 'gai1'):
-        for keb in entry.iter('keb'):
-          this = {}
-          if(re.search(kanji, keb.text)):
-            areCommons = 1
-            this['keb'] = keb.text
-            for gloss in entry.iter('gloss'):
-              this['gloss'] = gloss.text
-            for hiragana in entry.iter('reb'):
-              this['reb'] = hiragana.text
-            lists.append(this)
-            
-  if(areCommons == 0):
-    for entry in root:
-      for tag in entry.iter('keb'):
-        if(re.search(kanji, tag.text)):
+      if elem.text == 'ichi1' or elem.text == 'news1' or elem.text == 'spec1' or elem.text == 'gai1':
+        common = 1
+    if common == 1:
+      for keb in entry.iter('keb'):
+        this = {}
+        glossList = []
+        if(re.search(kanji, keb.text)):
           this['keb'] = keb.text
           for gloss in entry.iter('gloss'):
-            this['gloss'] = gloss.text
+            glossList.append(gloss.text)
+          this['gloss'] = glossList
           for hiragana in entry.iter('reb'):
             this['reb'] = hiragana.text
-          lists.append(this)
-        
+          listCommon.append(this)
+    else:
+      for keb in entry.iter('keb'):
+        this = {}
+        glossList = []
+        if(re.search(kanji, keb.text)):
+          this['keb'] = keb.text
+          for gloss in entry.iter('gloss'):
+            glossList.append(gloss.text)
+          this['gloss'] = glossList
+          for hiragana in entry.iter('reb'):
+            this['reb'] = hiragana.text
+          listUnCommon.append(this)
+  
+  lists = listCommon
+  lists += listUnCommon
+  
   [listsRet.append(elem) for elem in lists if elem not in listsRet]
   
   return listsRet
@@ -198,6 +207,13 @@ def kanjidic2(inKanji):
     if(stop == 1):
       break
   return kanjiHit
+
+def merge(seq):
+  merged = []
+  for s in seq:
+    for x in s:
+      merged.append(x)
+  return merged
 
 root = kanjidic2File.getroot()
 done = 1
