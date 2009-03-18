@@ -21,6 +21,7 @@ red = (255,0,0)
 cardBg = (255,255,255)
 cardSize = (800, 300)
 withSOD = 0
+pathToImages = '/home/mattias/cards/'
 
 print 'Parsing dictionaries...'
 kanjidic2File = etree.parse('dictionaries/kanjidic2.xml')
@@ -64,14 +65,14 @@ def makeFront(inKanji, commonWords, words):
   strokeC = ''
   freq = ''
   for character in kanjiInfo:
-    for kodIndex in character.iter('dic_ref'):
+    for kodIndex in character.getiterator('dic_ref'):
       if(kodIndex.get('dr_type') == 'halpern_kkld'):
         kodanshaIndex = kodIndex.text
-    for jlptInd in character.iter('jlpt'):
+    for jlptInd in character.getiterator('jlpt'):
       jlptIndex = jlptInd.text
-    for sCount in character.iter('stroke_count'):
+    for sCount in character.getiterator('stroke_count'):
       strokeC = sCount.text
-    for frq in character.iter('freq'):
+    for frq in character.getiterator('freq'):
       freq = frq.text
   
   font = ImageFont.truetype(fontSmall, 18)
@@ -110,16 +111,16 @@ def makeBack(inKanji, commonWordsTrans, commonWordsHir, words):
   meaning = []
   kodanshaIndex = ''
   for character in kanjiInfo:
-    for on in character.iter('reading'):
+    for on in character.getiterator('reading'):
       if(on.get('r_type') == 'ja_on'):
         onyomi.append(on.text)
-    for kun in character.iter('reading'):
+    for kun in character.getiterator('reading'):
       if(kun.get('r_type') == 'ja_kun'):
         kunyomi.append(kun.text)
-    for mean in character.iter('meaning'):
+    for mean in character.getiterator('meaning'):
       if(not mean.get('m_lang')):
         meaning.append(mean.text)
-    for kodIndex in character.iter('dic_ref'):
+    for kodIndex in character.getiterator('dic_ref'):
       if(kodIndex.get('dr_type') == 'halpern_kkld'):
         kodanshaIndex = kodIndex.text
   
@@ -159,31 +160,31 @@ def jmdic(inKanji):
   root = jmdicFile.getroot()
   for entry in root:
     common = 0
-    for elem in entry.iter('ke_pri'):
+    for elem in entry.getiterator('ke_pri'):
       if elem.text == 'ichi1' or elem.text == 'news1' or elem.text == 'spec1' or elem.text == 'gai1':
         common = 1
     if common == 1:
-      for keb in entry.iter('keb'):
+      for keb in entry.getiterator('keb'):
         this = {}
         glossList = []
         if(re.search(kanji, keb.text)):
           this['keb'] = keb.text
-          for gloss in entry.iter('gloss'):
+          for gloss in entry.getiterator('gloss'):
             glossList.append(gloss.text)
           this['gloss'] = glossList
-          for hiragana in entry.iter('reb'):
+          for hiragana in entry.getiterator('reb'):
             this['reb'] = hiragana.text
           listCommon.append(this)
     else:
-      for keb in entry.iter('keb'):
+      for keb in entry.getiterator('keb'):
         this = {}
         glossList = []
         if(re.search(kanji, keb.text)):
           this['keb'] = keb.text
-          for gloss in entry.iter('gloss'):
+          for gloss in entry.getiterator('gloss'):
             glossList.append(gloss.text)
           this['gloss'] = glossList
-          for hiragana in entry.iter('reb'):
+          for hiragana in entry.getiterator('reb'):
             this['reb'] = hiragana.text
           listUnCommon.append(this)
   
@@ -200,7 +201,7 @@ def kanjidic2(inKanji):
   stop = 0
   root = kanjidic2File.getroot()
   for character in root:
-    for literal in character.iter('literal'):
+    for literal in character.getiterator('literal'):
       if(re.search(kanji, literal.text)):
         kanjiHit.append(character)
         stop = 1
@@ -217,15 +218,16 @@ def merge(seq):
 
 root = kanjidic2File.getroot()
 done = 1
+ankiImport = open('ankiImport', 'w')
 
 if withSOD == 1:
   totalCards = 1513
 else:
   totalCards = 2230
   
-for char in root.iter('character'):
+for char in root.getiterator('character'):
   writeThis = 0
-  for kodIndex in char.iter('dic_ref'):
+  for kodIndex in char.getiterator('dic_ref'):
     if(kodIndex.get('dr_type') == 'halpern_kkld'):
       if(withSOD == 1):
         try:
@@ -237,8 +239,11 @@ for char in root.iter('character'):
       else:
         writeThis = 1
       if(writeThis == 1):
-        for literal in char.iter('literal'):
+        for literal in char.getiterator('literal'):
           print 'Creating DK'+kodIndex.text+'.png... ('+literal.text+')'
           makeCards(literal.text)
+          ankiImport.write('<img src="'+pathToImages+'front/DK'+kodIndex.text+'.png" />; <img src="'+pathToImages+'back/DK'+kodIndex.text+'.png" />\n')
           print str(done)+' / '+str(totalCards)+' Done.'
           done += 1
+          
+ankiImport.close()
