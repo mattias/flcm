@@ -253,10 +253,20 @@ kanjis = open('kanjis', 'r')
 line = kanjis.readline().decode('utf_8')
 i = 0
 while(line):
-  print 'Creating '+ line
-  makeCards(line.strip());
   i += 1
-  print str(i)+' cards made so far...'
+  line = kanjis.readline().decode('utf_8')
+
+kanjis.close()
+
+kanjis = open('kanjis', 'r')
+
+line = kanjis.readline().decode('utf_8')
+
+while(line):
+  print str(i)+' cards left to make...'
+  makeCards(line.strip());
+  print line.strip()+' created.'
+  i -= 1
   line = kanjis.readline().decode('utf_8')
 
 kanjis.close()
