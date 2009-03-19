@@ -216,7 +216,7 @@ def merge(seq):
       merged.append(x)
   return merged
 
-root = kanjidic2File.getroot()
+"""root = kanjidic2File.getroot()
 done = 1
 ankiImport = open('ankiImport', 'w')
 
@@ -246,4 +246,17 @@ for char in root.getiterator('character'):
           print str(done)+' / '+str(totalCards)+' Done.'
           done += 1
           
-ankiImport.close()
+ankiImport.close()"""
+
+kanjis = open('kanjis', 'r')
+
+line = kanjis.readline().decode('utf_8')
+i = 0
+while(line):
+  print 'Creating '+ line
+  makeCards(line.strip());
+  i += 1
+  print str(i)+' cards made so far...'
+  line = kanjis.readline().decode('utf_8')
+
+kanjis.close()
