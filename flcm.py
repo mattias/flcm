@@ -15,10 +15,9 @@ except ImportError:
 
 # Change to your desired settings ^.^
 sodPath = 'dictionaries/sod-utf8/'
-pathToImages = '/home/mattias/cards/'
-fontSerif = '/usr/share/fonts/truetype/kochi/kochi-mincho.ttf'
-fontSanSerif = '/usr/share/fonts/truetype/kochi/kochi-gothic.ttf'
-fontSmall = '/usr/share/fonts/truetype/freefont/FreeSans.ttf'
+fontSerif = '/usr/share/fonts/kochi-substitute/kochi-mincho-subst.ttf'
+fontSanSerif = '/usr/share/fonts/kochi-substitute/kochi-gothic-subst.ttf'
+fontSmall = '/usr/share/fonts/corefonts/arialuni.ttf'
 blue = (21,38,195)
 orange = (211,100,59)
 red = (255,0,0)
@@ -262,7 +261,7 @@ for char in root.getiterator('character'):
         for literal in char.getiterator('literal'):
           print 'Creating DK'+kodIndex.text+'.png... ('+literal.text+')'
           makeCards(literal.text)
-          ankiImport.write('<img src="'+pathToImages+'front/DK'+kodIndex.text+'.png" />; <img src="'+pathToImages+'back/DK'+kodIndex.text+'.png" />\n')
+          ankiImport.write('<img src="front/DK'+kodIndex.text+'.png" />; <img src="back/DK'+kodIndex.text+'.png" />\n')
           print str(done)+' / '+str(totalCards)+' Done.'
           done += 1
           
@@ -305,7 +304,7 @@ while(line):
             break
   makeCards(line.strip());
   print 'kodInd: '+kodInd
-  ankiImport.write('<img src="'+pathToImages+'front/DK'+kodInd+'.png" />; <img src="'+pathToImages+'back/DK'+kodInd+'.png" />\n')
+  ankiImport.write('<img src="front/DK'+kodInd+'.png" />;<img src="back/DK'+kodInd+'.png" />\n')
   print line.strip()+' created.'
   i -= 1
   line = kanjis.readline().decode('utf_8')
